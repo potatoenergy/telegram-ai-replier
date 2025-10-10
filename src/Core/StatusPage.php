@@ -12,15 +12,15 @@ class StatusPage
         $statusClass = $isSet ? "status-ok" : "status-error";
         $webhookSetStatus = $webhookSetResult ? "Successfully Set" : "Error During Setup";
 
-        $pageContent = $this->getPageHtml($pageTitle, $statusText, $statusClass, $currentUrl, $desiredUrl, $webhookSetStatus);
-        echo $pageContent;
-    }
-
-    private function getPageHtml(string $title, string $statusText, string $statusClass, ?string $currentUrl, string $desiredUrl, string $webhookSetStatus): string
-    {
         $currentUrlDisplay = $currentUrl !== null ? $currentUrl : 'Not Set';
         $currentUrlDisplayHtml = htmlspecialchars($currentUrlDisplay, ENT_QUOTES, 'UTF-8');
 
+        $pageContent = $this->getPageHtml($pageTitle, $statusText, $statusClass, $currentUrlDisplayHtml, $desiredUrl, $webhookSetStatus);
+        echo $pageContent;
+    }
+
+    private function getPageHtml(string $title, string $statusText, string $statusClass, string $currentUrlDisplayHtml, string $desiredUrl, string $webhookSetStatus): string
+    {
         $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
