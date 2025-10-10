@@ -1,0 +1,19 @@
+.git
+.gitignore
+
+.vscode/
+.idea/
+
+composer.lock
+composer.phar
+
+*.log
+logs/
+
+# Данные (если не монтируется как volume)
+# data/ # <- Раскомментируйте, если вы НЕ хотите копировать папку data внутрь образа
+
+.DS_Store
+Thumbs.db
+
+.env
