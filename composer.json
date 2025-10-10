@@ -19,7 +19,7 @@
             "App\\": "src/"
         },
         "files": [
-            "config/config.php"
+            "src/Config/Config.php"
         ]
     },
     "config": {
