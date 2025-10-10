@@ -57,15 +57,26 @@ class WebhookHandler
 
         if ($chatId == $adminId) {
             if ($text === '/start') {
-                $adminInfo = "Telegram AI Replier Admin Panel\n";
-                $adminInfo .= "AI Provider: " . ($_ENV['AI_PROVIDER'] ?? 'Not Set') . "\n";
-                $adminInfo .= "Model: " . ($_ENV['OPENAI_MODEL'] ?? $_ENV['OLLAMA_MODEL'] ?? 'Not Set') . "\n";
-                $adminInfo .= "Webhook URL: " . ($_ENV['TELEGRAM_WEBHOOK_URL'] ?? 'Not Set') . "\n";
+                $aiProvider = $_ENV['AI_PROVIDER'] ?? 'Not Set';
+                $aiModel = $_ENV['OPENAI_MODEL'] ?? $_ENV['OLLAMA_MODEL'] ?? 'Not Set';
+                $webhookUrl = $_ENV['TELEGRAM_WEBHOOK_URL'] ?? 'Not Set';
+                $rateLimitWindow = (int) ($_ENV['RATE_LIMIT_WINDOW'] ?? 60);
+                $rateLimitMax = (int) ($_ENV['RATE_LIMIT_MAX_REQUESTS'] ?? 5);
+                $systemPrompt = $_ENV['AI_SYSTEM_PROMPT'] ?? 'Not Set';
+
+                $adminInfo = "🤖 <b>Telegram AI Replier Admin Panel</b>\n\n";
+                $adminInfo .= "<b>Configuration:</b>\n";
+                $adminInfo .= "├─ AI Provider: <code>" . htmlspecialchars($aiProvider) . "</code>\n";
+                $adminInfo .= "├─ Model: <code>" . htmlspecialchars($aiModel) . "</code>\n";
+                $adminInfo .= "├─ Webhook URL: <code>" . htmlspecialchars($webhookUrl) . "</code>\n";
+                $adminInfo .= "├─ Rate Limit: $rateLimitMax requests per $rateLimitWindow seconds\n";
+                $adminInfo .= "└─ System Prompt: <code>" . htmlspecialchars(substr($systemPrompt, 0, 50)) . "...</code>\n\n";
                 $adminInfo .= "This bot handles messages for the linked Telegram Business account.";
 
                 $this->bot->sendMessage([
                     'chat_id' => $chatId,
                     'text' => $adminInfo,
+                    'parse_mode' => 'HTML'
                 ]);
             }
             return;

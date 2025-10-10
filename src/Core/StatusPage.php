@@ -30,196 +30,212 @@ class StatusPage
     <title>$title</title>
     <style>
         :root {
-            --primary-color: #4CAF50;
-            --error-color: #f44336;
-            --warning-color: #ff9800;
-            --info-color: #2196F3;
-            --bg-color: #f5f7fa;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #e0e0e0;
+            --tg-primary: #0088cc; /* Основной цвет Telegram */
+            --tg-primary-hover: #0077b3;
+            --tg-bg: #f0f0f0; /* Светлый фон как в Telegram Web A */
+            --tg-bg-dark: #ffffff; /* Белый фон карточек */
+            --tg-text-primary: #000000; /* Основной текст */
+            --tg-text-secondary: #8e8e93; /* Вторичный текст */
+            --tg-text-accent: var(--tg-primary);
+            --tg-status-ok: #00c853; /* Цвет для OK */
+            --tg-status-error: #ff1744; /* Цвет для ошибки */
+            --tg-border: #e0e0e0; /* Цвет границ */
+            --tg-radius: 8px; /* Радиус скругления */
+        }
+
+        /* Темная тема */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --tg-bg: #0b0f15; /* Темный фон */
+                --tg-bg-dark: #1a1f26; /* Темный фон карточек */
+                --tg-text-primary: #ffffff; /* Белый текст */
+                --tg-text-secondary: #aaaaaa; /* Серый текст */
+                --tg-border: #3a3a3c; /* Темная граница */
+            }
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-bg);
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            color: var(--tg-text-primary);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: var(--text-color);
+            line-height: 1.5;
         }
 
         .container {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
+            background-color: var(--tg-bg-dark);
+            border-radius: var(--tg-radius);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
             text-align: center;
         }
 
-        h1 {
-            color: var(--text-color);
-            margin-bottom: 10px;
-            font-size: 2.5em;
-            font-weight: 600;
+        .header {
+            margin-bottom: 24px;
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--tg-text-primary);
+        }
+
+        .header p {
+            font-size: 15px;
+            color: var(--tg-text-secondary);
+            margin: 8px 0 0 0;
         }
 
         .status-box {
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-weight: bold;
-            font-size: 1.2em;
+            background-color: #f0f0f0; /* Светлый фон статуса как в чатах */
+            border-radius: var(--tg-radius);
+            padding: 16px;
+            margin: 16px 0;
+            font-weight: 500;
+            font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
+            color: var(--tg-text-primary);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .status-box {
+                background-color: #2a2f35; /* Темный фон статуса */
+            }
         }
 
         .status-ok {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border: 2px solid #4CAF50;
+            color: var(--tg-status-ok);
         }
 
         .status-error {
-            background-color: #ffebee;
-            color: #c62828;
-            border: 2px solid #f44336;
+            color: var(--tg-status-error);
         }
 
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .info-card {
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 20px;
+        .info-section {
+            margin: 24px 0;
             text-align: left;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
 
-        .info-card h3 {
-            margin-top: 0;
-            color: #555;
-            font-size: 1.1em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
+        .info-section h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-text-secondary);
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--tg-border);
         }
 
-        .info-card dl {
-            margin: 0;
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--tg-border);
         }
 
-        .info-card dt {
-            font-weight: bold;
-            color: #777;
-            margin-top: 10px;
+        .info-item:last-child {
+            border-bottom: none;
         }
 
-        .info-card dd {
-            margin: 5px 0 10px 0;
-            padding-left: 15px;
+        .info-label {
+            font-weight: 500;
+            color: var(--tg-text-primary);
+        }
+
+        .info-value {
             font-family: monospace;
-            background-color: #f0f0f0;
-            padding: 5px;
-            border-radius: 4px;
+            font-size: 13px;
+            color: var(--tg-text-secondary);
             word-break: break-all;
+            text-align: right;
+            flex: 1;
+            margin-left: 12px;
         }
 
         .details-section {
-            margin-top: 30px;
-            text-align: left;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--tg-border);
         }
 
         .details-section h2 {
-            color: #555;
-            font-size: 1.3em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-text-secondary);
+            margin: 0 0 12px 0;
         }
 
         .details-section p {
-            line-height: 1.6;
+            font-size: 14px;
+            color: var(--tg-text-primary);
+            margin: 0 0 16px 0;
         }
 
         .footer {
-            margin-top: 40px;
-            color: #999;
-            font-size: 0.9em;
+            margin-top: 24px;
+            color: var(--tg-text-secondary);
+            font-size: 13px;
         }
 
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(0,0,0,.1);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s ease-in-out infinite;
-            vertical-align: middle;
-            margin-left: 10px;
+        .icon {
+            font-size: 20px;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 600px) {
+        @media (max-width: 500px) {
             .container {
-                padding: 20px;
+                padding: 16px;
             }
-            h1 {
-                font-size: 2em;
+            .header h1 {
+                font-size: 20px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🤖 Telegram AI Replier</h1>
-        <p class="subtitle">Status Dashboard</p>
+        <div class="header">
+            <h1>🤖 Telegram AI Replier</h1>
+            <p>Status Dashboard</p>
+        </div>
 
         <div class="status-box $statusClass">
+            <span class="icon">$statusText</span>
             <span>Webhook Status: $statusText</span>
-            <span id="status-icon">$statusText</span>
         </div>
 
         <p>This page confirms the configuration status of the Telegram Bot webhook.</p>
 
-        <div class="info-grid">
-            <div class="info-card">
-                <h3>Configuration</h3>
-                <dl>
-                    <dt>Desired Webhook URL:</dt>
-                    <dd>$desiredUrl</dd>
-                    <dt>Webhook Setup Result:</dt>
-                    <dd id="setup-result">$webhookSetStatus</dd>
-                </dl>
+        <div class="info-section">
+            <h2>Configuration</h2>
+            <div class="info-item">
+                <span class="info-label">Desired Webhook URL:</span>
+                <span class="info-value">$desiredUrl</span>
             </div>
-            <div class="info-card">
-                <h3>Telegram API Status</h3>
-                <dl>
-                    <dt>Current Webhook URL (from Telegram):</dt>
-                    <dd id="current-url">$currentUrlDisplayHtml</dd>
-                    <dt>Last Check:</dt>
-                    <dd id="last-check">Just now</dd>
-                </dl>
+            <div class="info-item">
+                <span class="info-label">Webhook Setup Result:</span>
+                <span class="info-value">$webhookSetStatus</span>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>Telegram API Status</h2>
+            <div class="info-item">
+                <span class="info-label">Current Webhook URL:</span>
+                <span class="info-value" id="current-url">$currentUrlDisplayHtml</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Last Check:</span>
+                <span class="info-value" id="last-check">Just now</span>
             </div>
         </div>
 
@@ -244,19 +260,13 @@ class StatusPage
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const lastCheckElement = document.getElementById('last-check');
-            const statusIcon = document.getElementById('status-icon');
+            const statusIcon = document.querySelector('.icon');
             const setupResultElement = document.getElementById('setup-result');
 
             if (statusIcon.textContent === 'Not Set Correctly') {
-                statusIcon.innerHTML = '❌';
+                statusIcon.textContent = '❌';
             } else if (statusIcon.textContent === 'OK') {
-                 statusIcon.innerHTML = '✅';
-            }
-
-            if (setupResultElement.textContent === 'Error During Setup') {
-                setupResultElement.style.color = '#c62828';
-            } else {
-                 setupResultElement.style.color = '#2e7d32';
+                 statusIcon.textContent = '✅';
             }
 
             function updateTimestamp() {
