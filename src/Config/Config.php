@@ -19,13 +19,13 @@ class Config
 
         if ($aiProvider === 'openai') {
             $requiredVars[] = 'OPENAI_API_KEY';
-        } elseif ($aiProvider === 'custom_openai') {
-             $requiredVars[] = 'OPENAI_API_KEY';
-             $requiredVars[] = 'OPENAI_BASE_URL';
+            $baseUrl = $_ENV['OPENAI_BASE_URL'] ?? null;
+            if ($baseUrl !== null) {
+                 $requiredVars[] = 'OPENAI_BASE_URL';
+            }
         } elseif ($aiProvider === 'ollama') {
-            // OLLAMA_URL, OLLAMA_MODEL не обязательны, если у них есть значения по умолчанию в AIProvider
         } else {
-            throw new ConfigException("Unsupported AI_PROVIDER: '$aiProvider'. Must be 'openai', 'custom_openai', or 'ollama'.");
+            throw new ConfigException("Unsupported AI_PROVIDER: '$aiProvider'. Must be 'openai' or 'ollama'.");
         }
 
         foreach ($requiredVars as $var) {

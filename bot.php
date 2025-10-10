@@ -87,7 +87,7 @@ try {
         $aiProviderName = Config::get('AI_PROVIDER');
 
         $aiProvider = null;
-        if ($aiProviderName === 'openai' || $aiProviderName === 'custom_openai') {
+        if ($aiProviderName === 'openai') {
             $aiProvider = new OpenAIProvider();
         } elseif ($aiProviderName === 'ollama') {
             $aiProvider = new OllamaProvider();
