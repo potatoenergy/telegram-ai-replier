@@ -68,6 +68,7 @@ class WebhookHandler
                     'text' => $adminInfo,
                 ]);
             }
+            return;
         } else {
              $this->bot->sendMessage([
                 'chat_id' => $chatId,
@@ -82,6 +83,13 @@ class WebhookHandler
         $bId = $bMessage['business_connection_id'] ?? null;
         $bChatId = $bMessage['chat']['id'] ?? null;
         $bMessageId = $bMessage['message_id'] ?? null;
+        $bSenderId = $bMessage['from']['id'] ?? null;
+        $adminId = (int) ($_ENV['ADMIN_USER_ID'] ?? 0);
+
+        if ($bSenderId !== null && $bSenderId == $adminId) {
+            error_log("Received business_message from admin (ID: $bSenderId). Ignoring to prevent bot self-reply.");
+            return;
+        }
 
         if ($bText !== null && $bId !== null && $bChatId !== null && $bMessageId !== null) {
             $isRateLimited = $this->checkRateLimit($bChatId);
