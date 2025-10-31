@@ -1,0 +1,14 @@
+---
+services:
+  telegram-ai-replier:
+    build: .
+    container_name: telegram-ai-replier
+    env_file:
+      - .env
+    image: telegram-ai-replier
+    ports:
+      - '8008:80'
+    restart: unless-stopped
+    volumes:
+      - ./data/db.json:/app/data/db.json
+      - ./data/rate_limit.json:/app/data/rate_limit.json
