@@ -36,7 +36,7 @@ try {
     ]);
     $webhook_info_response = curl_exec($ch_check);
     $http_code_check = curl_getinfo($ch_check, CURLINFO_HTTP_CODE);
-    curl_close($ch_check);
+    unset($ch_check);
 
     if ($http_code_check !== 200 || !$webhook_info_response) {
         throw new Exception("Failed to get webhook info from Telegram API. HTTP Code: $http_code_check");
@@ -62,7 +62,7 @@ try {
         ]);
         $set_response = curl_exec($ch_set);
         $http_code_set = curl_getinfo($ch_set, CURLINFO_HTTP_CODE);
-        curl_close($ch_set);
+        unset($ch_set);
 
         if ($http_code_set !== 200 || !$set_response) {
             throw new Exception("Failed to set webhook to Telegram API. HTTP Code: $http_code_set");

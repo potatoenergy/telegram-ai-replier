@@ -36,7 +36,7 @@ class Bot
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
-        curl_close($ch);
+        unset($ch);
 
         if ($error) {
             error_log("cURL Error in Bot API request ($method): " . $error);

@@ -62,7 +62,7 @@ class OllamaProvider implements AIInterface
         $response = curl_exec($curl);
         $err = curl_error($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
+        unset($curl);
 
         if ($err) {
             error_log("cURL Error for Ollama: " . $err);

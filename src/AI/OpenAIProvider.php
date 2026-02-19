@@ -123,7 +123,7 @@ class OpenAIProvider implements AIInterface
         $response = curl_exec($curl);
         $err = curl_error($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
+        unset($curl);
 
         if ($err) {
             error_log("OpenAIProvider cURL Error for Custom API: " . $err);
