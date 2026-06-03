@@ -3,12 +3,28 @@ services:
   telegram-ai-replier:
     build: .
     container_name: telegram-ai-replier
+    cpus: '0.5'
     env_file:
       - .env
-    image: telegram-ai-replier
+    extra_hosts:
+      - api.telegram.org:149.154.167.220
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      timeout: 10s
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 10m
+    mem_limit: 256m
+    pids_limit: 100
     ports:
       - '8008:80'
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     volumes:
-      - ./data/db.json:/app/data/db.json
-      - ./data/rate_limit.json:/app/data/rate_limit.json
+      - /etc/localtime:/etc/localtime:ro

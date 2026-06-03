@@ -1,254 +1,307 @@
 <?php
-
 namespace App\Core;
 
 class StatusPage
 {
-    public function render(?string $currentUrl, string $desiredUrl, bool $webhookSetResult = true): void
-    {
-        $pageTitle = "Telegram AI Replier Status";
-        $isSet = $currentUrl === $desiredUrl;
-        $statusText = $isSet ? "OK" : "Not Set Correctly";
-        $statusClass = $isSet ? "status-ok" : "status-error";
-        $webhookSetStatus = $webhookSetResult ? "Successfully Set" : "Error During Setup";
+  public function render(
+    ?string $currentUrl,
+    string $desiredUrl,
+    bool $webhookSetResult = true,
+    array $apiStatus = [],
+    array $rateLimitStatus = [],
+    int $pendingUpdates = 0,
+    ?int $lastErrorDate = null,
+    ?string $lastErrorMessage = null,
+  ): void {
+    $pageTitle = "Telegram AI Replier Status";
 
-        $currentUrlDisplay = $currentUrl !== null ? $currentUrl : 'Not Set';
-        $currentUrlDisplayHtml = htmlspecialchars($currentUrlDisplay, ENT_QUOTES, 'UTF-8');
+    $webhookOk = $currentUrl === $desiredUrl && $webhookSetResult;
+    $apiOk = $apiStatus["available"] ?? false;
+    $rateLimitOk = $rateLimitStatus["available"] ?? false;
 
-        $pageContent = $this->getPageHtml($pageTitle, $statusText, $statusClass, $currentUrlDisplayHtml, $desiredUrl, $webhookSetStatus);
-        echo $pageContent;
+    $issues = [];
+
+    if (!$webhookOk) {
+      $issues[] = "Webhook is not configured correctly";
+    } elseif (!empty($lastErrorMessage)) {
+      $issues[] =
+        "Webhook delivery failed: " . htmlspecialchars($lastErrorMessage);
+    } elseif ($pendingUpdates > 0) {
+      $issues[] = "Pending updates: $pendingUpdates messages waiting";
     }
 
-    private function getPageHtml(string $title, string $statusText, string $statusClass, string $currentUrlDisplayHtml, string $desiredUrl, string $webhookSetStatus): string
-    {
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
+    if (!$apiOk) {
+      $apiErr = $apiStatus["error"] ?? "Connection failed";
+      $issues[] = "Telegram API unreachable: " . htmlspecialchars($apiErr);
+    }
+
+    if (!$rateLimitOk) {
+      $issues[] = "Rate Limiter is inactive";
+    }
+
+    $systemOk = empty($issues);
+    $statusText = $systemOk ? "Operational" : "Issues Detected";
+    $statusClass = $systemOk ? "status-ok" : "status-error";
+
+    $pageContent = $this->getPageHtml(
+      $pageTitle,
+      $statusText,
+      $statusClass,
+      $systemOk,
+      $issues,
+      $apiStatus,
+      $rateLimitStatus,
+    );
+    echo $pageContent;
+  }
+
+  private function getPageHtml(
+    string $title,
+    string $statusText,
+    string $statusClass,
+    bool $systemOk,
+    array $issues,
+    array $apiStatus,
+    array $rateLimitStatus,
+  ): string {
+    $issuesHtml = "";
+    if (!$systemOk && !empty($issues)) {
+      $issuesHtml = '<ul class="issues-list">';
+      foreach ($issues as $issue) {
+        $issuesHtml .= "<li>$issue</li>";
+      }
+      $issuesHtml .= "</ul>";
+    }
+
+    $aiProvider = $_ENV["AI_PROVIDER"] ?? "Unknown";
+    $aiModel = $_ENV["OPENAI_MODEL"] ?? ($_ENV["OLLAMA_MODEL"] ?? "Unknown");
+
+    $publicInfoHtml = <<<HTML
+            <div class="info-section">
+                <h2>System Information</h2>
+                <div class="info-item">
+                    <span class="info-label">AI Provider:</span>
+                    <span class="info-value">$aiProvider</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Model:</span>
+                    <span class="info-value">$aiModel</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">Active</span>
+                </div>
+            </div>
+    HTML;
+
+    $errorDetailsHtml = "";
+    if (!$systemOk) {
+      $apiTime = $apiStatus["time"] ?? "N/A";
+      $apiIp = $apiStatus["ip"] ?? "N/A";
+      $proxyUsed =
+        ($apiStatus["proxy_used"] ?? "No") === "Yes" ? "Enabled" : "Disabled";
+      $rlType = $rateLimitStatus["type"] ?? "N/A";
+
+      $errorDetailsHtml = <<<HTML
+                  <div class="info-section">
+                      <h2>Diagnostic Information</h2>
+                      <div class="info-item">
+                          <span class="info-label">API Response Time:</span>
+                          <span class="info-value">{$apiTime}s</span>
+                      </div>
+                      <div class="info-item">
+                          <span class="info-label">API Remote IP:</span>
+                          <span class="info-value">$apiIp</span>
+                      </div>
+                      <div class="info-item">
+                          <span class="info-label">Proxy:</span>
+                          <span class="info-value">$proxyUsed</span>
+                      </div>
+                      <div class="info-item">
+                          <span class="info-label">Rate Limiter Type:</span>
+                          <span class="info-value">$rlType</span>
+                      </div>
+                  </div>
+      HTML;
+    }
+
+    $html = <<<HTML
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$title</title>
     <style>
+    :root {
+        --tg-primary: #0088cc;
+        --tg-bg: #f0f0f0;
+        --tg-bg-dark: #ffffff;
+        --tg-text-primary: #000000;
+        --tg-text-secondary: #8e8e93;
+        --tg-status-ok: #00c853;
+        --tg-status-error: #ff1744;
+        --tg-border: #e0e0e0;
+        --tg-radius: 8px;
+        --tg-spacing-sm: 8px;
+        --tg-spacing-md: 16px;
+        --tg-spacing-lg: 24px;
+    }
+
+    @media (prefers-color-scheme: dark) {
         :root {
-            --tg-primary: #0088cc; /* Основной цвет Telegram */
-            --tg-primary-hover: #0077b3;
-            --tg-bg: #f0f0f0; /* Светлый фон как в Telegram Web A */
-            --tg-bg-dark: #ffffff; /* Белый фон карточек */
-            --tg-text-primary: #000000; /* Основной текст */
-            --tg-text-secondary: #8e8e93; /* Вторичный текст */
-            --tg-text-accent: var(--tg-primary);
-            --tg-status-ok: #00c853; /* Цвет для OK */
-            --tg-status-error: #ff1744; /* Цвет для ошибки */
-            --tg-border: #e0e0e0; /* Цвет границ */
-            --tg-radius: 8px; /* Радиус скругления */
+            --tg-bg: #0b0f15;
+            --tg-bg-dark: #1a1f26;
+            --tg-text-primary: #ffffff;
+            --tg-text-secondary: #aaaaaa;
+            --tg-border: #3a3a3c;
         }
+    }
 
-        /* Темная тема */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --tg-bg: #0b0f15; /* Темный фон */
-                --tg-bg-dark: #1a1f26; /* Темный фон карточек */
-                --tg-text-primary: #ffffff; /* Белый текст */
-                --tg-text-secondary: #aaaaaa; /* Серый текст */
-                --tg-border: #3a3a3c; /* Темная граница */
-            }
-        }
+    * { box-sizing: border-box; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-bg);
-            margin: 0;
-            padding: 0;
-            color: var(--tg-text-primary);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            line-height: 1.5;
-        }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--tg-bg);
+        margin: 0;
+        padding: var(--tg-spacing-md);
+        color: var(--tg-text-primary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        line-height: 1.6;
+    }
 
-        .container {
-            background-color: var(--tg-bg-dark);
-            border-radius: var(--tg-radius);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-        }
+    .container {
+        background-color: var(--tg-bg-dark);
+        border-radius: var(--tg-radius);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: var(--tg-spacing-lg);
+        max-width: 600px;
+        width: 100%;
+    }
 
-        .header {
-            margin-bottom: 24px;
-        }
+    .header { margin-bottom: var(--tg-spacing-lg); text-align: center; }
+    .header h1 { font-size: 24px; font-weight: 600; margin: 0 0 var(--tg-spacing-sm) 0; }
+    .header p { font-size: 15px; color: var(--tg-text-secondary); margin: 0; }
 
-        .header h1 {
-            font-size: 22px;
-            font-weight: 600;
-            margin: 0;
-            color: var(--tg-text-primary);
-        }
+    .status-box {
+        background-color: var(--tg-bg);
+        border-radius: var(--tg-radius);
+        padding: var(--tg-spacing-md);
+        margin: var(--tg-spacing-md) 0;
+        font-weight: 500;
+        font-size: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
 
-        .header p {
-            font-size: 15px;
-            color: var(--tg-text-secondary);
-            margin: 8px 0 0 0;
-        }
+    .status-main {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--tg-spacing-sm);
+        width: 100%;
+    }
 
-        .status-box {
-            background-color: #f0f0f0; /* Светлый фон статуса как в чатах */
-            border-radius: var(--tg-radius);
-            padding: 16px;
-            margin: 16px 0;
-            font-weight: 500;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            color: var(--tg-text-primary);
-        }
+    .status-ok { color: var(--tg-status-ok); }
+    .status-error { color: var(--tg-status-error); }
 
-        @media (prefers-color-scheme: dark) {
-            .status-box {
-                background-color: #2a2f35; /* Темный фон статуса */
-            }
-        }
+    .issues-list {
+        margin: 12px 0 0 0;
+        padding: 12px 0 0 0;
+        list-style: none;
+        text-align: left;
+        font-size: 13px;
+        font-family: 'SF Mono', Monaco, monospace;
+        width: 100%;
+        border-top: 1px solid var(--tg-border);
+    }
+    .issues-list li {
+        margin-bottom: 6px;
+        color: var(--tg-status-error);
+        word-break: break-word;
+        padding-left: 20px;
+        position: relative;
+    }
+    .issues-list li::before {
+        content: "•";
+        position: absolute;
+        left: 8px;
+        color: var(--tg-status-error);
+    }
 
-        .status-ok {
-            color: var(--tg-status-ok);
-        }
+    .info-section { margin: var(--tg-spacing-lg) 0; }
+    .info-section h2 {
+        font-size: 14px; font-weight: 600; color: var(--tg-text-secondary);
+        margin: 0 0 var(--tg-spacing-md) 0; padding-bottom: var(--tg-spacing-sm);
+        border-bottom: 1px solid var(--tg-border);
+        text-transform: uppercase; letter-spacing: 0.5px;
+    }
 
-        .status-error {
-            color: var(--tg-status-error);
-        }
+    .info-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: var(--tg-spacing-sm) 0; border-bottom: 1px solid var(--tg-border); gap: var(--tg-spacing-md);
+    }
+    .info-item:last-child { border-bottom: none; }
+    .info-label { font-weight: 500; font-size: 14px; flex-shrink: 0; }
+    .info-value {
+        font-family: 'SF Mono', Monaco, monospace; font-size: 13px;
+        color: var(--tg-text-secondary); word-break: break-all; text-align: right; flex: 1; min-width: 0;
+    }
 
-        .info-section {
-            margin: 24px 0;
-            text-align: left;
-        }
+    .details-section {
+        margin-top: var(--tg-spacing-lg); padding-top: var(--tg-spacing-lg);
+        border-top: 1px solid var(--tg-border);
+    }
+    .details-section h2 {
+        font-size: 14px; font-weight: 600; color: var(--tg-text-secondary);
+        margin: 0 0 var(--tg-spacing-md) 0; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .details-section p { font-size: 14px; margin: 0 0 var(--tg-spacing-md) 0; line-height: 1.6; }
 
-        .info-section h2 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--tg-text-secondary);
-            margin: 0 0 12px 0;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--tg-border);
-        }
+    .footer {
+        margin-top: var(--tg-spacing-lg); padding-top: var(--tg-spacing-md);
+        border-top: 1px solid var(--tg-border); color: var(--tg-text-secondary);
+        font-size: 12px; text-align: center;
+    }
 
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--tg-border);
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            font-weight: 500;
-            color: var(--tg-text-primary);
-        }
-
-        .info-value {
-            font-family: monospace;
-            font-size: 13px;
-            color: var(--tg-text-secondary);
-            word-break: break-all;
-            text-align: right;
-            flex: 1;
-            margin-left: 12px;
-        }
-
-        .details-section {
-            margin-top: 24px;
-            padding-top: 24px;
-            border-top: 1px solid var(--tg-border);
-        }
-
-        .details-section h2 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--tg-text-secondary);
-            margin: 0 0 12px 0;
-        }
-
-        .details-section p {
-            font-size: 14px;
-            color: var(--tg-text-primary);
-            margin: 0 0 16px 0;
-        }
-
-        .footer {
-            margin-top: 24px;
-            color: var(--tg-text-secondary);
-            font-size: 13px;
-        }
-
-        .icon {
-            font-size: 20px;
-        }
-
-        @media (max-width: 500px) {
-            .container {
-                padding: 16px;
-            }
-            .header h1 {
-                font-size: 20px;
-            }
-        }
+    @media (max-width: 600px) {
+        body { padding: var(--tg-spacing-sm); }
+        .container { padding: var(--tg-spacing-md); }
+        .header h1 { font-size: 20px; }
+        .info-item { flex-direction: column; align-items: flex-start; gap: var(--tg-spacing-sm); }
+        .info-value { text-align: left; width: 100%; }
+    }
     </style>
-</head>
-<body>
+    </head>
+    <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 Telegram AI Replier</h1>
+            <h1>Telegram AI Replier</h1>
             <p>Status Dashboard</p>
         </div>
 
         <div class="status-box $statusClass">
-            <span class="icon">$statusText</span>
-            <span>Webhook Status: $statusText</span>
+            <div class="status-main">
+                <span>$statusText</span>
+            </div>
+            $issuesHtml
         </div>
 
-        <p>This page confirms the configuration status of the Telegram Bot webhook.</p>
-
-        <div class="info-section">
-            <h2>Configuration</h2>
-            <div class="info-item">
-                <span class="info-label">Desired Webhook URL:</span>
-                <span class="info-value">$desiredUrl</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Webhook Setup Result:</span>
-                <span class="info-value">$webhookSetStatus</span>
-            </div>
-        </div>
-
-        <div class="info-section">
-            <h2>Telegram API Status</h2>
-            <div class="info-item">
-                <span class="info-label">Current Webhook URL:</span>
-                <span class="info-value" id="current-url">$currentUrlDisplayHtml</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Last Check:</span>
-                <span class="info-value" id="last-check">Just now</span>
-            </div>
-        </div>
+        $publicInfoHtml
+        $errorDetailsHtml
 
         <div class="details-section">
-            <h2>How It Works</h2>
+            <h2>About</h2>
             <p>
-                This bot automatically replies to messages sent to a Telegram Business account using AI.
-                The webhook is the mechanism Telegram uses to send incoming messages to this bot's server.
-                This page verifies that the webhook is correctly configured to point to this server's address.
+                This service automatically processes messages from a Telegram Business account using artificial intelligence.
             </p>
             <p>
-                <strong>AI Provider:</strong> <span id="ai-provider">{$this->getEnvOrDefault('AI_PROVIDER', 'Unknown')}</span><br>
-                <strong>Model:</strong> <span id="ai-model">{$this->getEnvOrDefault('OPENAI_MODEL', $this->getEnvOrDefault('OLLAMA_MODEL', 'Unknown'))}</span>
+                <strong>Repository:</strong> <a href="https://github.com/potatoenergy/telegram-ai-replier" target="_blank" style="color: var(--tg-primary);">GitHub</a>
             </p>
         </div>
 
@@ -256,36 +309,9 @@ class StatusPage
             <p>Status Page | Telegram AI Replier</p>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const lastCheckElement = document.getElementById('last-check');
-            const statusIcon = document.querySelector('.icon');
-            const setupResultElement = document.getElementById('setup-result');
-
-            if (statusIcon.textContent === 'Not Set Correctly') {
-                statusIcon.textContent = '❌';
-            } else if (statusIcon.textContent === 'OK') {
-                 statusIcon.textContent = '✅';
-            }
-
-            function updateTimestamp() {
-                const now = new Date();
-                lastCheckElement.textContent = now.toLocaleString();
-            }
-            updateTimestamp();
-            setInterval(updateTimestamp, 60000);
-        });
-    </script>
-</body>
-</html>
-HTML;
-
-        return $html;
-    }
-
-    private function getEnvOrDefault(string $key, string $default): string
-    {
-        return $_ENV[$key] ?? $default;
-    }
+    </body>
+    </html>
+    HTML;
+    return $html;
+  }
 }

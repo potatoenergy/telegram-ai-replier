@@ -1,15 +1,27 @@
+# Environment files (never commit secrets)
 .env
+.env.local
+.env.*.local
 
+# Dependencies
+vendor/
+
+# Data files (runtime data should not be versioned)
 data/
 
+# Logs
 *.log
-logs/
 
-vendor/
-composer.lock
-
-.vscode/
+# IDE and editor files
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
 
+# OS files
 .DS_Store
 Thumbs.db
+
+# Build artifacts
+*.cache
