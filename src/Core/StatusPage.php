@@ -1,6 +1,8 @@
 <?php
 namespace App\Core;
 
+use App\Config\Config;
+
 class StatusPage
 {
   public function render(
@@ -14,21 +16,28 @@ class StatusPage
     ?string $lastErrorMessage = null,
   ): void {
     $pageTitle = "Telegram AI Replier Status";
+    $updateMode = Config::getUpdateMode();
 
-    $webhookOk = $currentUrl === $desiredUrl && $webhookSetResult;
-    $apiOk = $apiStatus["available"] ?? false;
-    $rateLimitOk = $rateLimitStatus["available"] ?? false;
-
+    $webhookOk = false;
     $issues = [];
 
-    if (!$webhookOk) {
-      $issues[] = "Webhook is not configured correctly";
-    } elseif (!empty($lastErrorMessage)) {
-      $issues[] =
-        "Webhook delivery failed: " . htmlspecialchars($lastErrorMessage);
-    } elseif ($pendingUpdates > 0) {
-      $issues[] = "Pending updates: $pendingUpdates messages waiting";
+    if ($updateMode === "webhook") {
+      $webhookOk = $currentUrl === $desiredUrl && $webhookSetResult;
+
+      if (!$webhookOk) {
+        $issues[] = "Webhook is not configured correctly";
+      } elseif (!empty($lastErrorMessage)) {
+        $issues[] =
+          "Webhook delivery failed: " . htmlspecialchars($lastErrorMessage);
+      } elseif ($pendingUpdates > 0) {
+        $issues[] = "Pending updates: $pendingUpdates messages waiting";
+      }
+    } else {
+      $issues[] = "Running in long polling mode (webhook disabled)";
     }
+
+    $apiOk = $apiStatus["available"] ?? false;
+    $rateLimitOk = $rateLimitStatus["available"] ?? false;
 
     if (!$apiOk) {
       $apiErr = $apiStatus["error"] ?? "Connection failed";
@@ -39,7 +48,8 @@ class StatusPage
       $issues[] = "Rate Limiter is inactive";
     }
 
-    $systemOk = empty($issues);
+    $systemOk =
+      $apiOk && $rateLimitOk && ($updateMode === "polling" || $webhookOk);
     $statusText = $systemOk ? "Operational" : "Issues Detected";
     $statusClass = $systemOk ? "status-ok" : "status-error";
 
@@ -51,6 +61,7 @@ class StatusPage
       $issues,
       $apiStatus,
       $rateLimitStatus,
+      $updateMode,
     );
     echo $pageContent;
   }
@@ -63,9 +74,10 @@ class StatusPage
     array $issues,
     array $apiStatus,
     array $rateLimitStatus,
+    string $updateMode,
   ): string {
     $issuesHtml = "";
-    if (!$systemOk && !empty($issues)) {
+    if (!empty($issues)) {
       $issuesHtml = '<ul class="issues-list">';
       foreach ($issues as $issue) {
         $issuesHtml .= "<li>$issue</li>";
@@ -75,10 +87,15 @@ class StatusPage
 
     $aiProvider = $_ENV["AI_PROVIDER"] ?? "Unknown";
     $aiModel = $_ENV["OPENAI_MODEL"] ?? ($_ENV["OLLAMA_MODEL"] ?? "Unknown");
+    $modeLabel = $updateMode === "polling" ? "Long Polling" : "Webhook";
 
     $publicInfoHtml = <<<HTML
             <div class="info-section">
                 <h2>System Information</h2>
+                <div class="info-item">
+                    <span class="info-label">Update Method:</span>
+                    <span class="info-value">$modeLabel</span>
+                </div>
                 <div class="info-item">
                     <span class="info-label">AI Provider:</span>
                     <span class="info-value">$aiProvider</span>
@@ -94,8 +111,41 @@ class StatusPage
             </div>
     HTML;
 
+    $safetyMinDelay = $_ENV["MIN_RESPONSE_DELAY"] ?? "3000";
+    $safetyMaxDelay = $_ENV["MAX_RESPONSE_DELAY"] ?? "8000";
+    $safetyProbability = $_ENV["CHAT_RESPONSE_PROBABILITY"] ?? "1.0";
+    $safetyMaxLength = $_ENV["MAX_MESSAGE_LENGTH"] ?? "4096";
+    $safetyIgnoreIds = $_ENV["IGNORE_USER_IDS"] ?? "None";
+    $safetyIgnorePatterns = $_ENV["IGNORE_USER_PATTERNS"] ?? "None";
+
+    $safetyHtml = <<<HTML
+            <div class="info-section">
+                <h2>Safety & Timing</h2>
+                <div class="info-item">
+                    <span class="info-label">Response Delay:</span>
+                    <span class="info-value">{$safetyMinDelay}-{$safetyMaxDelay}ms</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Response Probability:</span>
+                    <span class="info-value">$safetyProbability</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Max Message Length:</span>
+                    <span class="info-value">$safetyMaxLength</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Ignore User IDs:</span>
+                    <span class="info-value">$safetyIgnoreIds</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Ignore Patterns:</span>
+                    <span class="info-value">$safetyIgnorePatterns</span>
+                </div>
+            </div>
+    HTML;
+
     $errorDetailsHtml = "";
-    if (!$systemOk) {
+    if (!empty($apiStatus)) {
       $apiTime = $apiStatus["time"] ?? "N/A";
       $apiIp = $apiStatus["ip"] ?? "N/A";
       $proxyUsed =
@@ -293,6 +343,7 @@ class StatusPage
         </div>
 
         $publicInfoHtml
+        $safetyHtml
         $errorDetailsHtml
 
         <div class="details-section">

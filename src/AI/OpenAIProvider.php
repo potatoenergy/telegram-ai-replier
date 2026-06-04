@@ -54,22 +54,32 @@ class OpenAIProvider implements AIInterface
       ($_ENV["AI_SYSTEM_PROMPT"] ?? "You are a helpful assistant.");
   }
 
-  public function generateResponse(string $prompt): ?string
+  public function generateResponse(string $prompt, array $history = []): ?string
   {
     return $this->useCurl
-      ? $this->callCustomApi($prompt)
-      : $this->callOfficialApi($prompt);
+      ? $this->callCustomApi($prompt, $history)
+      : $this->callOfficialApi($prompt, $history);
   }
 
-  private function callOfficialApi(string $prompt): ?string
+  private function buildMessages(string $prompt, array $history): array
+  {
+    $messages = [["role" => "system", "content" => $this->systemPrompt]];
+
+    foreach ($history as $msg) {
+      $messages[] = ["role" => $msg["role"], "content" => $msg["content"]];
+    }
+
+    $messages[] = ["role" => "user", "content" => $prompt];
+
+    return $messages;
+  }
+
+  private function callOfficialApi(string $prompt, array $history): ?string
   {
     try {
       $result = $this->client->chat()->create([
         "model" => $this->model,
-        "messages" => [
-          ["role" => "system", "content" => $this->systemPrompt],
-          ["role" => "user", "content" => $prompt],
-        ],
+        "messages" => $this->buildMessages($prompt, $history),
         "max_tokens" => $this->maxTokens,
         "temperature" => $this->temperature,
       ]);
@@ -80,15 +90,12 @@ class OpenAIProvider implements AIInterface
     }
   }
 
-  private function callCustomApi(string $prompt): ?string
+  private function callCustomApi(string $prompt, array $history): ?string
   {
     $ch = curl_init();
     $payload = json_encode([
       "model" => $this->model,
-      "messages" => [
-        ["role" => "system", "content" => $this->systemPrompt],
-        ["role" => "user", "content" => $prompt],
-      ],
+      "messages" => $this->buildMessages($prompt, $history),
       "max_tokens" => $this->maxTokens,
       "temperature" => $this->temperature,
     ]);

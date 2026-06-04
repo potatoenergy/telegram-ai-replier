@@ -12,146 +12,138 @@ A modular Telegram bot using AI for business replies.
 
 ## Prerequisites
 
-- A **publicly accessible server** or hosting service capable of receiving HTTPS webhooks from Telegram.
-- A **domain name** pointing to your server (recommended for HTTPS).
+- A **publicly accessible server** or hosting service capable of receiving HTTPS webhooks from Telegram (for webhook mode).
+- A **domain name** pointing to your server (recommended for HTTPS, webhook mode only).
 - A **Telegram Bot Token** (get it from [@BotFather](https://t.me/BotFather)).
 - An **AI Provider** configured (OpenAI API Key, Ollama instance, or custom OpenAI-compatible API).
 
 ## Environment Variables
 
-`.env` configuration example:
+Copy `.env.example` to `.env` and fill in your values. See the file for full documentation of each variable.
 
-```dotenv
-# --- Telegram ---
-BOT_TOKEN=YOUR_BOT_TOKEN_HERE
-ADMIN_USER_ID=123456789
-# ADMIN_USER_IDS=123456789,987654321
-TELEGRAM_WEBHOOK_URL=https://your-domain.com/
-# TELEGRAM_API_BASE_URL=https://api.telegram.org
-
-# --- AI Configuration ---
-AI_PROVIDER=openai
-
-# --- OpenAI Settings ---
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-3.5-turbo
-# OPENAI_BASE_URL=https://your-openai-proxy.com/v1
-
-# --- Ollama Settings ---
-OLLAMA_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=llama3.2
-
-# --- AI General Settings ---
-AI_MAX_TOKENS=500
-AI_TEMPERATURE=0.7
-AI_SYSTEM_PROMPT=You are a helpful assistant for a Telegram Business account.
-
-# --- Proxy (applies to all outgoing requests) ---
-# PROXY_URL=socks5://user:pass@host:1080
-
-# --- Rate Limiting ---
-RATE_LIMIT_WINDOW=60
-RATE_LIMIT_MAX_REQUESTS=5
-
-# --- Debug ---
-DEBUG=false
-```
-
-| Variable                  | Purpose                                                               | Default                              |
-| ------------------------- | --------------------------------------------------------------------- | ------------------------------------ |
-| `BOT_TOKEN`               | Telegram Bot Token                                                    | —                                    |
-| `ADMIN_USER_ID`           | Single admin Telegram User ID                                         | —                                    |
-| `ADMIN_USER_IDS`          | Comma-separated list of admin IDs                                     | —                                    |
-| `TELEGRAM_WEBHOOK_URL`    | Webhook URL for Telegram                                              | —                                    |
-| `TELEGRAM_API_BASE_URL`   | Custom Telegram API base URL                                          | `https://api.telegram.org`           |
-| `AI_PROVIDER`             | AI provider (`openai`, `ollama`)                                      | —                                    |
-| `OPENAI_API_KEY`          | API Key for OpenAI                                                    | — (required if `AI_PROVIDER=openai`) |
-| `OPENAI_MODEL`            | Model name for OpenAI                                                 | `gpt-3.5-turbo`                      |
-| `OPENAI_BASE_URL`         | Base URL for custom OpenAI API                                        | — (optional)                         |
-| `OLLAMA_URL`              | URL for Ollama API                                                    | `http://host.docker.internal:11434`  |
-| `OLLAMA_MODEL`            | Model name for Ollama                                                 | `llama3.2`                           |
-| `AI_MAX_TOKENS`           | Max tokens for AI response                                            | `500`                                |
-| `AI_TEMPERATURE`          | Creativity setting for AI                                             | `0.7`                                |
-| `AI_SYSTEM_PROMPT`        | System prompt for AI                                                  | "You are a helpful assistant..."     |
-| `PROXY_URL`               | Proxy for all outgoing requests (supports `http`, `socks4`, `socks5`) | —                                    |
-| `RATE_LIMIT_WINDOW`       | Rate limit time window (seconds)                                      | `60`                                 |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window per chat                                      | `5`                                  |
-| `DEBUG`                   | Enable verbose logging                                                | `false`                              |
+| Variable                    | Purpose                                           | Default                             |
+| --------------------------- | ------------------------------------------------- | ----------------------------------- |
+| `UPDATE_MODE`               | `webhook` or `polling`                            | `webhook`                           |
+| `BOT_TOKEN`                 | Telegram Bot Token                                | —                                   |
+| `ADMIN_USER_IDS`            | Comma-separated tech admin IDs (commands only)    | —                                   |
+| `BUSINESS_USER_ID`          | Business owner ID (AI processing + commands)      | —                                   |
+| `TELEGRAM_WEBHOOK_URL`      | Webhook URL (required for webhook mode)           | —                                   |
+| `TELEGRAM_API_BASE_URL`     | Custom Telegram API base URL                      | `https://api.telegram.org`          |
+| `AI_PROVIDER`               | `openai` or `ollama`                              | —                                   |
+| `OPENAI_API_KEY`            | OpenAI API Key (required if `AI_PROVIDER=openai`) | —                                   |
+| `OPENAI_MODEL`              | OpenAI model name                                 | `gpt-3.5-turbo`                     |
+| `OPENAI_BASE_URL`           | Custom OpenAI-compatible API base URL             | —                                   |
+| `OLLAMA_URL`                | Ollama API URL                                    | `http://host.docker.internal:11434` |
+| `OLLAMA_MODEL`              | Ollama model name                                 | `llama3.2`                          |
+| `AI_MAX_TOKENS`             | Max tokens for AI response                        | `500`                               |
+| `AI_TEMPERATURE`            | AI creativity setting                             | `0.7`                               |
+| `AI_SYSTEM_PROMPT`          | System prompt for AI                              | "You are a helpful assistant..."    |
+| `CHAT_HISTORY_SIZE`         | Number of messages kept per chat                  | `10`                                |
+| `PROXY_URL`                 | Proxy for outgoing requests (HTTP/SOCKS4/SOCKS5)  | —                                   |
+| `RATE_LIMIT_WINDOW`         | Rate limit window (seconds)                       | `60`                                |
+| `RATE_LIMIT_MAX_REQUESTS`   | Max requests per window per chat                  | `5`                                 |
+| `MIN_RESPONSE_DELAY`        | Min reply delay (ms)                              | `3000`                              |
+| `MAX_RESPONSE_DELAY`        | Max reply delay (ms)                              | `8000`                              |
+| `CHAT_RESPONSE_PROBABILITY` | Response probability (0.0–1.0)                    | `1.0`                               |
+| `IGNORE_USER_IDS`           | Comma-separated user IDs to ignore                | —                                   |
+| `IGNORE_USER_PATTERNS`      | Comma-separated name patterns to ignore           | —                                   |
+| `MAX_MESSAGE_LENGTH`        | Max AI response length (chars)                    | `4096`                              |
+| `POLLING_TIMEOUT`           | Long polling timeout (seconds)                    | `30`                                |
+| `DEBUG`                     | Enable verbose logging                            | `false`                             |
 
 ## Key Features
 
-**1. Business Message Handling:**
+**1. Dual Update Modes:**
 
-- Automatically receives and processes messages sent to your Telegram Business account via webhooks.
-- Supports `business_message`, `business_connection`, and `business_message_deleted` events.
-- Handles media captions (photos, videos, documents) in addition to plain text.
+- **Webhook** — instant delivery via HTTPS POST (requires public URL).
+- **Long Polling** — works behind NAT/firewall, no public URL needed.
+- Seamless switching via `UPDATE_MODE` environment variable.
+
+**2. Business Message Handling:**
+
+- Processes `business_message`, `business_connection`, and `deleted_business_messages` events.
+- Handles media captions in addition to plain text.
 - Replies generated by selected AI provider (OpenAI, Ollama, custom).
 
-**2. Admin Commands:**
+**3. Role-Based Access Control:**
 
-- `/start`: Provides configuration information to the configured admin user(s).
-- Supports multiple admin IDs via `ADMIN_USER_ID` and/or `ADMIN_USER_IDS`.
+- **Tech admins** (`ADMIN_USER_IDS`) — manage bot via commands, ignored in business AI processing.
+- **Business owner** (`BUSINESS_USER_ID`) — messages processed by AI + full admin command access.
 
-**3. In-Memory Rate Limiting:**
+**4. Contextual AI Conversations:**
 
-- Fast per-worker rate limiting using PHP static arrays.
-- Prevents spam by limiting the number of requests per chat within a configurable time window.
-- No external dependencies required (no Redis needed).
+- Per-chat message history with configurable size (`CHAT_HISTORY_SIZE`).
+- `/clear` command to reset conversation context in a specific business chat.
 
-**4. Proxy Support:**
+**5. Safety & Timing Controls:**
 
-- Universal `PROXY_URL` applies to all outgoing requests (Telegram API, OpenAI API).
-- Supports HTTP, SOCKS4, SOCKS5 (with optional authentication).
+- Humanized response delay (random between `MIN_RESPONSE_DELAY` and `MAX_RESPONSE_DELAY`).
+- Configurable response probability (`CHAT_RESPONSE_PROBABILITY`).
+- User ignore lists by ID and name patterns.
+- Max response length truncation.
 
-**5. Modular Design:**
+**6. In-Memory Rate Limiting:**
 
-- Core, AI, and Config modules separated for clarity and maintainability.
-- Supports multiple AI providers via a common interface (`AIInterface`).
+- Sliding-window rate limiting per `chat_id`.
+- No external dependencies (no Redis needed).
 
-**6. Webhook Management:**
+**7. Proxy Support:**
 
-- Automatically sets the webhook on startup based on `TELEGRAM_WEBHOOK_URL`.
-- Provides a status page at the webhook URL with live diagnostics (webhook status, Telegram API connectivity, rate limiter status).
+- Universal `PROXY_URL` for all outgoing requests (Telegram API, OpenAI API).
+- Supports HTTP, SOCKS4, SOCKS5 with optional authentication.
 
-**7. Custom Telegram API:**
+**8. Modular Command System:**
 
-- Supports custom `TELEGRAM_API_BASE_URL` for self-hosted Telegram Bot API servers or network bypasses.
+- Commands in separate classes implementing `CommandInterface`.
+- `/start` — admin configuration panel with full settings overview.
+- `/status` — system diagnostics (API health, rate limiter, update mode).
+- `/clear` — reset AI conversation history in current business chat.
+
+**9. Status Page:**
+
+- Available at webhook URL root (GET request) in both webhook and polling modes.
+- Displays system status, Safety & Timing settings, API diagnostics, and rate limiter info.
 
 ## Setup
 
-1. **Configure Environment:** Copy `.env.example` to `.env` and fill in your specific values (Bot Token, Admin ID, Webhook URL, AI Provider details).
-2. **Deploy:** Use the provided `docker-compose.yml` to deploy the bot on your server. Ensure your server is configured to receive webhooks on the specified `TELEGRAM_WEBHOOK_URL`.
-3. **Link Business Account:** In your Telegram Business profile, link the bot by navigating to "Chatbot" and entering your bot's username.
+1. **Configure Environment:** Copy `.env.example` to `.env` and fill in your values.
+2. **Deploy:** Run `docker-compose up -d` (webhook) or `docker-compose --profile polling up -d` (polling).
+3. **Link Business Account:** In Telegram Business settings → Chatbot → enter your bot username.
 4. **Test:** Send a message to your Telegram Business account. The bot should respond via AI.
+
+## Switching Between Modes
+
+```bash
+# Webhook → Polling
+# Set UPDATE_MODE=polling in .env
+docker-compose down
+docker-compose --profile polling up -d
+
+# Polling → Webhook
+# Set UPDATE_MODE=webhook and TELEGRAM_WEBHOOK_URL in .env
+docker-compose --profile polling down
+docker-compose up -d
+```
 
 ## Technical Architecture
 
 **Processing Pipeline:**
 
-1. Telegram sends webhook POST request to `TELEGRAM_WEBHOOK_URL`.
-2. `bot.php` receives and routes the request.
-3. `WebhookHandler` identifies message type (admin/business/connection/deleted).
-4. (For business) Rate limit check is performed using in-memory storage.
-5. Message text is sent to the configured `AIProvider`.
-6. AI response is received.
-7. `Bot` class sends the response back to Telegram Business chat.
+1. Update received via webhook (Nginx → PHP-FPM) or long polling (CLI).
+2. `UpdateHandler` routes update to appropriate handler method.
+3. `SafetyFilter` checks ignore lists and response probability.
+4. Admin/business owner role check determines processing path.
+5. For business messages: rate limit → AI generation with chat history → humanized delay → send.
+6. For commands: delegated to corresponding `CommandInterface` implementation.
 
 **Safety Systems:**
 
 - In-memory sliding-window rate limiting per `chat_id`.
+- User filtering by ID and name patterns.
+- Configurable response probability and humanized delays.
+- Max response length truncation.
 - Input validation and error handling.
-- Configurable system prompt for AI.
 - Debug mode for detailed request logging.
-
-## Status Page
-
-The status page is available at the webhook URL root (GET request). It displays:
-
-- Overall system status (OK/Error)
-- Webhook configuration status and pending updates count
-- Telegram API connectivity (response time, remote IP, proxy status)
-- Rate limiter status and active keys count
-- AI provider and model information
 
 ## License
 

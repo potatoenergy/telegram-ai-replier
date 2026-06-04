@@ -30,7 +30,7 @@ class Bot
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_POST => true,
       CURLOPT_POSTFIELDS => $params,
-      CURLOPT_TIMEOUT => 30,
+      CURLOPT_TIMEOUT => 60,
     ]);
     ProxyHelper::apply($ch, $this->proxyUrl);
 
@@ -63,6 +63,18 @@ class Bot
   public function setWebhook(string $url): bool
   {
     return $this->request("setWebhook", ["url" => $url]) !== null;
+  }
+
+  public function deleteWebhook(bool $dropPendingUpdates = false): bool
+  {
+    return $this->request("deleteWebhook", [
+      "drop_pending_updates" => $dropPendingUpdates,
+    ]) !== null;
+  }
+
+  public function getUpdates(array $params = []): ?array
+  {
+    return $this->request("getUpdates", $params);
   }
 
   public function checkApiAvailability(): array

@@ -18,7 +18,8 @@ LABEL org.opencontainers.image.source=https://github.com/potatoenergy/telegram-a
 LABEL org.opencontainers.image.description="A modular Telegram bot using AI for business replies"
 LABEL org.opencontainers.image.licenses=MIT
 
-RUN apk add --no-cache curl nginx
+RUN apk add --no-cache curl nginx bash \
+    && docker-php-ext-install pcntl
 
 RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
     && echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
@@ -31,10 +32,12 @@ COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 RUN mkdir -p /run/nginx /var/lib/nginx /var/log/nginx \
     && chown -R www-data:www-data /app /var/lib/nginx /run/nginx /var/log/nginx
 
 EXPOSE 80
 
-CMD ["sh", "-c", "nginx -g 'daemon off;' & php-fpm"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

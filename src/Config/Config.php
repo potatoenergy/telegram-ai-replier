@@ -7,16 +7,28 @@ class Config
 {
   public static function loadAndValidate(): void
   {
-    $requiredVars = ["TELEGRAM_WEBHOOK_URL", "AI_PROVIDER"];
+    $updateMode = strtolower($_ENV["UPDATE_MODE"] ?? "webhook");
 
-    $hasAdminId =
-      isset($_ENV["ADMIN_USER_ID"]) && $_ENV["ADMIN_USER_ID"] !== "";
-    $hasAdminIds =
-      isset($_ENV["ADMIN_USER_IDS"]) && $_ENV["ADMIN_USER_IDS"] !== "";
-
-    if (!$hasAdminId && !$hasAdminIds) {
+    if (!in_array($updateMode, ["webhook", "polling"], true)) {
       throw new ConfigException(
-        "At least one of ADMIN_USER_ID or ADMIN_USER_IDS must be set.",
+        "Invalid UPDATE_MODE: '$updateMode'. Must be 'webhook' or 'polling'.",
+      );
+    }
+
+    $requiredVars = ["AI_PROVIDER"];
+
+    if ($updateMode === "webhook") {
+      $requiredVars[] = "TELEGRAM_WEBHOOK_URL";
+    }
+
+    $hasAdmins =
+      isset($_ENV["ADMIN_USER_IDS"]) && $_ENV["ADMIN_USER_IDS"] !== "";
+    $hasOwner =
+      isset($_ENV["BUSINESS_USER_ID"]) && $_ENV["BUSINESS_USER_ID"] !== "";
+
+    if (!$hasAdmins && !$hasOwner) {
+      throw new ConfigException(
+        "At least one of ADMIN_USER_IDS or BUSINESS_USER_ID must be set.",
       );
     }
 
@@ -61,11 +73,9 @@ class Config
       }
     }
 
-    if (isset($_ENV["ADMIN_USER_ID"]) && $_ENV["ADMIN_USER_ID"] !== "") {
-      $singleId = (int) $_ENV["ADMIN_USER_ID"];
-      if (!in_array($singleId, $ids, true)) {
-        $ids[] = $singleId;
-      }
+    $ownerId = self::getBusinessOwnerId();
+    if ($ownerId !== null && !in_array($ownerId, $ids, true)) {
+      $ids[] = $ownerId;
     }
 
     return $ids;
@@ -74,5 +84,24 @@ class Config
   public static function isAdmin(int $userId): bool
   {
     return in_array($userId, self::getAdminIds(), true);
+  }
+
+  public static function getBusinessOwnerId(): ?int
+  {
+    $id = $_ENV["BUSINESS_USER_ID"] ?? null;
+    return $id !== null && $id !== "" && ctype_digit((string) $id)
+      ? (int) $id
+      : null;
+  }
+
+  public static function isBusinessOwner(int $userId): bool
+  {
+    $ownerId = self::getBusinessOwnerId();
+    return $ownerId !== null && $userId === $ownerId;
+  }
+
+  public static function getUpdateMode(): string
+  {
+    return strtolower($_ENV["UPDATE_MODE"] ?? "webhook");
   }
 }

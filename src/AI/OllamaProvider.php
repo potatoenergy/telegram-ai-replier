@@ -36,15 +36,19 @@ class OllamaProvider implements AIInterface
         "You are a helpful assistant for a Telegram Business account.");
   }
 
-  public function generateResponse(string $prompt): ?string
+  public function generateResponse(string $prompt, array $history = []): ?string
   {
     $curl = curl_init();
 
-    $fullPrompt = $this->systemPrompt . "\n\nUser Query: " . $prompt;
+    $messages = [["role" => "system", "content" => $this->systemPrompt]];
+    foreach ($history as $msg) {
+      $messages[] = ["role" => $msg["role"], "content" => $msg["content"]];
+    }
+    $messages[] = ["role" => "user", "content" => $prompt];
 
     $payload = json_encode([
       "model" => $this->model,
-      "prompt" => $fullPrompt,
+      "messages" => $messages,
       "stream" => false,
       "options" => [
         "temperature" => $this->temperature,
@@ -53,7 +57,7 @@ class OllamaProvider implements AIInterface
     ]);
 
     curl_setopt_array($curl, [
-      CURLOPT_URL => $this->url . "/api/generate",
+      CURLOPT_URL => $this->url . "/api/chat",
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_POST => true,
       CURLOPT_POSTFIELDS => $payload,
@@ -77,8 +81,8 @@ class OllamaProvider implements AIInterface
     }
 
     $result = json_decode($response, true);
-    if ($result && isset($result["response"])) {
-      return trim($result["response"]);
+    if ($result && isset($result["message"]["content"])) {
+      return trim($result["message"]["content"]);
     }
 
     error_log("Ollama API Unexpected Response: " . $response);
