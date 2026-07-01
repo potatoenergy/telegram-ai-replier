@@ -106,8 +106,8 @@ class UpdateHandler
       error_log(
         sprintf(
           "[Business Message] From: %s (%s), Chat: %s, ConnID: %s, Text: %s",
-          $bSenderId,
-          $bSenderUsername ?? $bSenderFirstName,
+          $bSenderId ?? "null",
+          $bSenderUsername ?? ($bSenderFirstName ?? "null"),
           $bChatId,
           $bId,
           substr($bText ?? "", 0, 50),
@@ -132,19 +132,6 @@ class UpdateHandler
     }
 
     if (
-      $bSenderId !== null &&
-      Config::isAdmin((int) $bSenderId) &&
-      !Config::isBusinessOwner((int) $bSenderId)
-    ) {
-      if ($this->isDebug) {
-        error_log(
-          "[Business Message] Ignored: message from tech admin (ID: $bSenderId).",
-        );
-      }
-      return;
-    }
-
-    if (
       $bText === null ||
       $bId === null ||
       $bChatId === null ||
@@ -162,17 +149,22 @@ class UpdateHandler
       return;
     }
 
+    $isOwner = $bSenderId !== null && Config::isBusinessOwner((int) $bSenderId);
+    $isAdmin = $bSenderId !== null && Config::isAdmin((int) $bSenderId);
+
     $trimmed = trim($bText);
     if (str_starts_with($trimmed, "/") && isset($this->commands[$trimmed])) {
-      if (Config::isAdmin((int) $bSenderId)) {
+      if ($isOwner) {
         $this->commands[$trimmed]->execute($this->bot, $bChatId, $bId);
       }
       return;
     }
 
-    if (!$this->safetyFilter->shouldRespond()) {
+    if ($isOwner || $isAdmin) {
       if ($this->isDebug) {
-        error_log("[Business Message] Skipped by CHAT_RESPONSE_PROBABILITY.");
+        error_log(
+          "[Business Message] Ignored: message from Owner/Admin (ID: $bSenderId). AI is for users only.",
+        );
       }
       return;
     }
@@ -257,27 +249,30 @@ class UpdateHandler
       }
     }
 
-    if ($senderId !== null && Config::isAdmin((int) $senderId)) {
-      if (str_starts_with($text, "/") && isset($this->commands[$text])) {
-        $this->commands[$text]->execute($this->bot, $chatId);
-        return;
-      }
+    $isAdmin = $senderId !== null && Config::isAdmin((int) $senderId);
 
-      if (str_starts_with($text, "/")) {
-        $help = "<b>Available Commands</b>\n\n";
-        foreach ($this->commands as $name => $cmd) {
-          $help .= "$name — " . $cmd->getDescription() . "\n";
-        }
-        $this->bot->sendMessage([
-          "chat_id" => $chatId,
-          "text" => $help,
-          "parse_mode" => "HTML",
-        ]);
-        return;
+    if (str_starts_with($text, "/") && isset($this->commands[$text])) {
+      if ($isAdmin) {
+        $this->commands[$text]->execute($this->bot, $chatId);
+      } else {
+        $this->sendPublicInfo($chatId);
       }
+      return;
     }
 
-    $this->sendPublicInfo($chatId);
+    if ($isAdmin) {
+      $help = "<b>Available Commands</b>\n\n";
+      foreach ($this->commands as $name => $cmd) {
+        $help .= "$name — " . $cmd->getDescription() . "\n";
+      }
+      $this->bot->sendMessage([
+        "chat_id" => $chatId,
+        "text" => $help,
+        "parse_mode" => "HTML",
+      ]);
+    } else {
+      $this->sendPublicInfo($chatId);
+    }
   }
 
   private function sendPublicInfo(int $chatId): void
